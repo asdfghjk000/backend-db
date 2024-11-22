@@ -1,0 +1,6 @@
+[05-Nov-2024 10:45:06 Europe/Berlin] PHP Fatal error:  Uncaught PDOException: SQLSTATE[23000]: Integrity constraint violation: 1048 Column 'Image' cannot be null in C:\xampp\htdocs\backend-db\Product.php:31
+Stack trace:
+#0 C:\xampp\htdocs\backend-db\Product.php(31): PDOStatement->execute()
+#1 C:\xampp\htdocs\backend-db\create_product.php(33): Product->create()
+#2 {main}
+  thrown in C:\xampp\htdocs\backend-db\Product.php on line 31
