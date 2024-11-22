@@ -15,6 +15,8 @@ $db = $database->getConnection();
 
 if ($db) {
     $product = new Product($db);
+
+    // Modify the query to include categoryMain from Product.php's read method
     $stmt = $product->read();
 
     if ($stmt) {
@@ -22,19 +24,16 @@ if ($db) {
         if ($num > 0) {
             $products_arr = [];
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                // Debugging: Display the raw data from the database
-                // Uncomment the line below to see the raw output
-                // var_dump($row);
-
-                // Ensure the 'Image' field is properly handled if it's null or empty
-                $image_data = isset($row['Image']) && !empty($row['Image']) ? base64_encode($row['Image']) : null;
+                // Check if image data exists and encode it in base64 if it's not null
+                $image_data = isset($row['image']) && !empty($row['image']) ? base64_encode($row['image']) : null;
 
                 $product_item = [
-                    "productID" => $row['ProductID'],
-                    "productName" => $row['ProductName'],
-                    "categoryName" => $row['CategoryName'],
-                    "price" => $row['Price'],
-                    "image" => $image_data
+                    "productID" => $row['productID'],           // Use proper column names
+                    "productName" => $row['productName'],
+                    "categoryName" => $row['categoryName'],
+                    "categoryMain" => $row['categoryMain'],     // Include categoryMain from the category table
+                    "price" => $row['price'],
+                    "image" => $image_data                        // Encode image to base64 if available
                 ];
 
                 $products_arr[] = $product_item;
@@ -52,4 +51,5 @@ if ($db) {
     $response['message'] = "Failed to connect to the database.";
 }
 
-echo json_encode($response); // Ensure this is the only output
+echo json_encode($response);
+?>

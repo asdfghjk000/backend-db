@@ -8,6 +8,7 @@ class Product {
 
     public $productID;
     public $categoryName;
+    public $categoryMain; // Added the categoryMain field
     public $productName;
     public $image;
     public $price;
@@ -37,7 +38,11 @@ class Product {
 
     // Read all products
     public function read() {
-        $query = "SELECT * FROM " . $this->table_name;
+        // Modify the query to include categoryMain by joining the product table with the category table
+        $query = "SELECT p.productID, p.productName, p.categoryName, p.price, p.image, c.categoryMain
+                  FROM " . $this->table_name . " p
+                  LEFT JOIN category c ON p.categoryName = c.categoryName";
+
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt;
@@ -89,3 +94,4 @@ class Product {
         return false;
     }
 }
+?>

@@ -21,24 +21,34 @@ $data = json_decode(file_get_contents("php://input"));
 
 $response = array();
 
-if (!empty($data->categoryName)) {
-    $category = new Category($db);
-    $category->categoryName = $data->categoryName;
-
-    if ($category->create()) {
-        $response["success"] = true;
-        $response["message"] = "Category created successfully.";
-        http_response_code(201);
-    } else {
-        error_log("Failed to create category: " . json_encode($data));
+// Check if the categoryName and categoryMain are set and valid
+if (!empty($data->categoryName) && !empty($data->categoryMain)) {
+    // Ensure categoryMain is either 'Food' or 'Drink'
+    if ($data->categoryMain !== 'Food' && $data->categoryMain !== 'Drink') {
         $response["success"] = false;
-        $response["message"] = "Unable to create category.";
-        http_response_code(503);
+        $response["message"] = "Invalid categoryMain value. It must be 'Food' or 'Drink'.";
+        http_response_code(400); // Bad request
+    } else {
+        $category = new Category($db);
+        $category->categoryName = $data->categoryName;
+        $category->categoryMain = $data->categoryMain;
+
+        if ($category->create()) {
+            $response["success"] = true;
+            $response["message"] = "Category created successfully.";
+            http_response_code(201); // Created
+        } else {
+            error_log("Failed to create category: " . json_encode($data));
+            $response["success"] = false;
+            $response["message"] = "Unable to create category.";
+            http_response_code(503); // Service unavailable
+        }
     }
 } else {
     $response["success"] = false;
-    $response["message"] = "Category name is missing.";
-    http_response_code(400);
+    $response["message"] = "Category name or category main is missing.";
+    http_response_code(400); // Bad request
 }
 
 echo json_encode($response);
+?>

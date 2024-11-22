@@ -22,9 +22,11 @@ $stmt = $category->read();
 $categories_arr = [];
 
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    // Include categoryMain in the response
     $categories_arr[] = [
         "categoryID" => $row['categoryID'],
-        "categoryName" => $row['categoryName']
+        "categoryName" => $row['categoryName'],
+        "categoryMain" => $row['categoryMain']  // Add categoryMain field
     ];
 }
 

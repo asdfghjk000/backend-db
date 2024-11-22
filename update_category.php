@@ -20,10 +20,23 @@ $data = json_decode(file_get_contents("php://input"));
 
 $response = array();
 
-if (!empty($data->categoryID) && !empty($data->categoryName)) {
+// Check if categoryID, categoryName, and categoryMain are provided
+if (!empty($data->categoryID) && !empty($data->categoryName) && !empty($data->categoryMain)) {
+    // Ensure categoryMain is either 'Food' or 'Drink'
+    if ($data->categoryMain !== 'Food' && $data->categoryMain !== 'Drink') {
+        $response["success"] = false;
+        $response["message"] = "Invalid categoryMain value. It must be 'Food' or 'Drink'.";
+        http_response_code(400);
+        echo json_encode($response);
+        exit;
+    }
+
+    // Set category properties
     $category->categoryID = $data->categoryID;
     $category->categoryName = $data->categoryName;
+    $category->categoryMain = $data->categoryMain;  // Set the categoryMain value
 
+    // Try to update the category
     if ($category->update()) {
         $response["success"] = true;
         $response["message"] = "Category updated successfully.";
@@ -35,8 +48,9 @@ if (!empty($data->categoryID) && !empty($data->categoryName)) {
     }
 } else {
     $response["success"] = false;
-    $response["message"] = "Category ID or name is missing.";
+    $response["message"] = "Category ID, name, or categoryMain is missing.";
     http_response_code(400);
 }
 
 echo json_encode($response);
+?>
