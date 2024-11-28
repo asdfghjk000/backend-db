@@ -1,9 +1,8 @@
 <?php
 header("Content-Type: application/json; charset=UTF-8");
-// Add these headers to every PHP file
-header("Access-Control-Allow-Origin: *"); // Allow cross-origin requests
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS"); // Allow necessary HTTP methods
-header("Access-Control-Allow-Headers: Content-Type, Authorization"); // Allow necessary headers
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
 include_once 'Database.php';
 include_once 'Product.php';
@@ -20,35 +19,61 @@ if (!$db) {
 
 $product = new Product($db);
 
+// Handle OPTIONS request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['productName'], $_POST['categoryName'], $_POST['price'])) {
+    if (isset($_POST['productName'], $_POST['categoryName'], $_POST['price'], $_POST['status'])) {
         $product->productName = $_POST['productName'];
         $product->categoryName = $_POST['categoryName'];
         $product->price = $_POST['price'];
+        $product->status = $_POST['status'];
 
-        // Check if an image is uploaded
-        if (isset($_FILES['image']) && !empty($_FILES['image']['tmp_name'])) {
-            // Get the file content of the image
-            $imageData = file_get_contents($_FILES['image']['tmp_name']);
-            // Set the image as a BLOB field in the database
-            $product->image = $imageData;
+        // Validate and process uploaded image
+        if (isset($_FILES['image']) && is_uploaded_file($_FILES['image']['tmp_name'])) {
+            // Validate file type (JPEG/PNG only)
+            $allowedTypes = ['image/jpeg', 'image/png'];
+            $fileType = mime_content_type($_FILES['image']['tmp_name']);
+            
+            if (!in_array($fileType, $allowedTypes)) {
+                http_response_code(400);
+                echo json_encode(["success" => false, "message" => "Invalid image type. Only JPEG and PNG are allowed."]);
+                exit;
+            }
+
+            // Limit file size to 2MB
+            if ($_FILES['image']['size'] > 2 * 1024 * 1024) {
+                http_response_code(400);
+                echo json_encode(["success" => false, "message" => "Image size exceeds 2MB limit."]);
+                exit;
+            }
+
+            $product->image = file_get_contents($_FILES['image']['tmp_name']);
         } else {
-            $product->image = null; // No image selected
+            $product->image = null; // No image uploaded
         }
 
-        // Create the product in the database
+        // Create the product
         if ($product->create()) {
-            http_response_code(201);
-            // Retrieve the last inserted product to ensure consistent output
-            $createdProduct = [
-                "productID" => $db->lastInsertId(), // Assuming PDO is used
-                "productName" => $product->productName,
-                "categoryName" => $product->categoryName,
-                "price" => $product->price,
-                // Convert image to base64 and return as a Data URL
-                "image" => $product->image ? 'data:image/jpeg;base64,' . base64_encode($product->image) : null
-            ];
-            echo json_encode(["success" => true, "message" => "Product created successfully.", "data" => $createdProduct]);
+            $lastId = $db->lastInsertId();
+            if ($lastId) {
+                http_response_code(201);
+                $createdProduct = [
+                    "productID" => $lastId,
+                    "productName" => $product->productName,
+                    "categoryName" => $product->categoryName,
+                    "price" => $product->price,
+                    "status" => $product->status,
+                    "image" => $product->image ? 'data:image/jpeg;base64,' . base64_encode($product->image) : null
+                ];
+                echo json_encode(["success" => true, "message" => "Product created successfully.", "data" => $createdProduct]);
+            } else {
+                http_response_code(500);
+                echo json_encode(["success" => false, "message" => "Unable to retrieve the last inserted product ID."]);
+            }
         } else {
             error_log("Product creation failed.");
             http_response_code(500);
@@ -64,3 +89,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     http_response_code(405);
     echo json_encode(["success" => false, "message" => "Method not allowed."]);
 }
+?>

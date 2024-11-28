@@ -16,7 +16,7 @@ $db = $database->getConnection();
 if ($db) {
     $product = new Product($db);
 
-    // Modify the query to include categoryMain from Product.php's read method
+    // Modify the query to include status from Product.php's read method
     $stmt = $product->read();
 
     if ($stmt) {
@@ -33,6 +33,7 @@ if ($db) {
                     "categoryName" => $row['categoryName'],
                     "categoryMain" => $row['categoryMain'],     // Include categoryMain from the category table
                     "price" => $row['price'],
+                    "status" => $row['status'],                  // Include the status field
                     "image" => $image_data                        // Encode image to base64 if available
                 ];
 
