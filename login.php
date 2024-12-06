@@ -15,43 +15,38 @@ $db = $database->getConnection();
 $data = json_decode(file_get_contents("php://input"));
 
 if (!empty($data->Username) && !empty($data->Password)) {
-    $username = htmlspecialchars(strip_tags($data->Username));
-    $password = htmlspecialchars(strip_tags($data->Password));
+    $username = trim(htmlspecialchars(strip_tags($data->Username)));
+    $password = trim(htmlspecialchars(strip_tags($data->Password)));
 
-    // Hash the password
-    $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
-
-    // Insert user data into the database
-    $query = "INSERT INTO users (Username, Password) VALUES (:username, :password)";
+    // Check if the username exists in the database
+    $query = "SELECT Password, Role FROM users WHERE Username = :username";
     $stmt = $db->prepare($query);
     $stmt->bindParam(":username", $username);
-    $stmt->bindParam(":password", $hashedPassword);
+    $stmt->execute();
 
-    if ($stmt->execute()) {
-        // Retrieve the assigned role for the newly registered user
-        $roleQuery = "SELECT Role FROM users WHERE Username = :username LIMIT 1";
-        $roleStmt = $db->prepare($roleQuery);
-        $roleStmt->bindParam(":username", $username);
-        $roleStmt->execute();
-        $role = $roleStmt->fetch(PDO::FETCH_ASSOC);
+    if ($stmt->rowCount() > 0) {
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Check if the role is fetched successfully
-        if ($role && isset($role['Role'])) {
+        // Compare plain text password (if passwords are stored as plain text)
+        if ($password === $user['Password']) { // Use plain text comparison here
             echo json_encode([
                 "success" => true,
-                "message" => "User registered successfully.",
-                "user" => ["Role" => $role['Role']]
+                "message" => "Login successful.",
+                "user" => [
+                    "Username" => $username,
+                    "Role" => $user['Role']
+                ]
             ]);
         } else {
             echo json_encode([
                 "success" => false,
-                "message" => "User registered but role retrieval failed. Please contact support."
+                "message" => "Invalid credentials. Password mismatch."
             ]);
         }
     } else {
         echo json_encode([
             "success" => false,
-            "message" => "Error registering user."
+            "message" => "Invalid credentials. User not found."
         ]);
     }
 } else {
