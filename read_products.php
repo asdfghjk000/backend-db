@@ -40,17 +40,22 @@ if ($db) {
                 $products_arr[] = $product_item;
             }
 
+            // Return success and data if products found
             $response['success'] = true;
             $response['data'] = $products_arr;
         } else {
+            // Handle case when no products are found
             $response['message'] = "No products found.";
         }
     } else {
+        // Handle case when the query execution fails
         $response['message'] = "Failed to execute query to fetch products.";
     }
 } else {
+    // Handle case when database connection fails
     $response['message'] = "Failed to connect to the database.";
 }
 
+// Output the response as JSON
 echo json_encode($response);
 ?>
