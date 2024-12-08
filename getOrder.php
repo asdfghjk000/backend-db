@@ -25,6 +25,7 @@ try {
     $query = "SELECT 
                   o.OrderID AS orderNumber, 
                   o.TotalAmount AS amount, 
+                  o.ChangeAmount AS changeAmount, 
                   o.PaymentMethod AS payment, 
                   o.OrderDate AS date, 
                   GROUP_CONCAT(CONCAT(oi.ProductName, ' x', oi.Quantity) SEPARATOR '|') AS items
@@ -42,6 +43,7 @@ try {
             "orderNumber" => $row['orderNumber'],
             "items" => isset($row['items']) ? explode('|', $row['items']) : [],
             "amount" => $row['amount'],
+            "changeAmount" => $row['changeAmount'],
             "payment" => $row['payment'],
             "date" => $row['date']
         ];
