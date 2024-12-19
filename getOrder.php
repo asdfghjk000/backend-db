@@ -21,12 +21,12 @@ if (!$db) {
 }
 
 try {
-    // Query to get order history with total quantity instead of price
+    // Updated query to include OrderType
     $query = "SELECT 
                   o.OrderID AS orderNumber, 
                   o.TotalAmount AS amount, 
-                  o.ChangeAmount AS changeAmount, 
                   o.PaymentMethod AS payment, 
+                  o.OrderType AS orderType, 
                   o.OrderDate AS date, 
                   GROUP_CONCAT(CONCAT(oi.ProductName, ' x', oi.Quantity) SEPARATOR '|') AS items
               FROM orders o
@@ -43,8 +43,8 @@ try {
             "orderNumber" => $row['orderNumber'],
             "items" => isset($row['items']) ? explode('|', $row['items']) : [],
             "amount" => $row['amount'],
-            "changeAmount" => $row['changeAmount'],
             "payment" => $row['payment'],
+            "orderType" => $row['orderType'], // Include OrderType in response
             "date" => $row['date']
         ];
     }

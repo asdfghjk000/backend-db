@@ -14,7 +14,7 @@ if (!$db) {
     exit();
 }
 
-// Query to get sales data, including date, time, and category details
+// Query to get sales data, including date, time, and category details (without OrderTime)
 $stmt = $db->prepare("
     SELECT 
         p.ProductName, 
@@ -22,8 +22,7 @@ $stmt = $db->prepare("
         SUM(oi.Quantity) AS totalQuantity,          -- Calculate total quantity sold per product
         p.categoryName,                             -- Fetch categoryName from product table
         c.categoryMain,                             -- Fetch categoryMain from category table
-        o.OrderDate,                                -- Fetch the date of the order
-        TIME(o.OrderDate) AS OrderTime              -- Extract time from OrderDate
+        o.OrderDate                                 -- Fetch the date of the order (without the time part)
     FROM orders o
     JOIN order_items oi ON o.OrderID = oi.OrderID
     JOIN product p ON oi.ProductID = p.productID   -- Assuming ProductID exists in order_items

@@ -22,7 +22,8 @@ if (!$db) {
 
 $orderData = json_decode(file_get_contents("php://input"), true);
 
-if (!isset($orderData['totalAmount'], $orderData['paymentMethod'], $orderData['paidAmount'], $orderData['change'], $orderData['items'])) {
+// Validate required fields
+if (!isset($orderData['totalAmount'], $orderData['paymentMethod'], $orderData['paidAmount'], $orderData['change'], $orderData['orderType'], $orderData['items'])) {
     echo json_encode(["success" => false, "message" => "Missing required data."]);
     exit();
 }
@@ -31,18 +32,20 @@ $totalAmount = $orderData['totalAmount'];
 $paymentMethod = $orderData['paymentMethod'];
 $paidAmount = $orderData['paidAmount'];
 $change = $orderData['change'];
+$orderType = $orderData['orderType']; // Added OrderType
 $items = $orderData['items'];
 
 $db->beginTransaction();
 
 try {
     // Insert into orders table
-    $stmt = $db->prepare("INSERT INTO orders (TotalAmount, PaymentMethod, PaidAmount, ChangeAmount) 
-        VALUES (:TotalAmount, :PaymentMethod, :PaidAmount, :ChangeAmount)");
+    $stmt = $db->prepare("INSERT INTO orders (TotalAmount, PaymentMethod, PaidAmount, ChangeAmount, OrderType) 
+        VALUES (:TotalAmount, :PaymentMethod, :PaidAmount, :ChangeAmount, :OrderType)");
     $stmt->bindValue(':TotalAmount', $totalAmount, PDO::PARAM_INT);
     $stmt->bindValue(':PaymentMethod', $paymentMethod, PDO::PARAM_STR);
     $stmt->bindValue(':PaidAmount', $paidAmount, PDO::PARAM_INT);
     $stmt->bindValue(':ChangeAmount', $change, PDO::PARAM_INT);
+    $stmt->bindValue(':OrderType', $orderType, PDO::PARAM_STR); // Bind OrderType
 
     if (!$stmt->execute()) {
         throw new Exception("Error inserting order: " . implode(", ", $stmt->errorInfo()));
@@ -67,7 +70,7 @@ try {
         $stmt->bindValue(':ProductID', $productID, $productID !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
         $stmt->bindValue(':ProductName', $item['productName'], PDO::PARAM_STR);
         $stmt->bindValue(':Price', $item['price'], PDO::PARAM_INT);
-        $stmt->bindValue(':Quantity', $item['quantity'], PDO::PARAM_INT); // Ensure Quantity is bound properly
+        $stmt->bindValue(':Quantity', $item['quantity'], PDO::PARAM_INT);
 
         if (!$stmt->execute()) {
             throw new Exception("Error inserting order item: " . implode(", ", $stmt->errorInfo()));
@@ -94,3 +97,4 @@ error_log("Parameters: " . json_encode([
     ':Quantity' => $item['quantity']
 ]));
 ?>
+
