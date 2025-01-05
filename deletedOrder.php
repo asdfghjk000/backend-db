@@ -1,4 +1,4 @@
-<?php  
+<?php
 header("Access-Control-Allow-Origin: http://localhost:4200");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
@@ -21,41 +21,42 @@ if (!$db) {
 }
 
 try {
-    // Updated query to include OrderType and items of both restored and normal orders
+    // Query to retrieve deleted orders and their items
     $query = "SELECT 
-                  o.OrderID AS orderNumber, 
-                  o.TotalAmount AS amount, 
-                  o.PaymentMethod AS payment, 
-                  o.OrderType AS orderType, 
-                  o.OrderDate AS date, 
-                  GROUP_CONCAT(CONCAT(oi.ProductName, ' x', oi.Quantity) SEPARATOR '|') AS items
-              FROM orders o
-              LEFT JOIN order_items oi ON o.OrderID = oi.OrderID
-              GROUP BY o.OrderID
-              ORDER BY o.OrderDate DESC";
+              do.OrderID AS orderNumber, 
+              do.TotalAmount AS amount, 
+              do.PaymentMethod AS payment, 
+              do.OrderType AS orderType, 
+              do.OrderDate AS date, 
+              GROUP_CONCAT(CONCAT(doi.ProductName, ' x', doi.Quantity) SEPARATOR '|') AS items
+          FROM deleted_orders do
+          LEFT JOIN deleted_order_items doi ON do.DeletedOrderID = doi.DeletedOrderID
+          GROUP BY do.DeletedOrderID
+          ORDER BY do.OrderDate DESC";
+
 
     $stmt = $db->prepare($query);
     $stmt->execute();
 
-    $orders = [];
+    $deletedOrders = [];
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $orders[] = [
+        $deletedOrders[] = [
             "orderNumber" => $row['orderNumber'],
-            "items" => isset($row['items']) ? explode('|', $row['items']) : [], // Check if items are returned
+            "items" => isset($row['items']) ? explode('|', $row['items']) : [],
             "amount" => $row['amount'],
             "payment" => $row['payment'],
-            "orderType" => $row['orderType'], // Include OrderType in response
+            "orderType" => $row['orderType'],
             "date" => $row['date']
         ];
     }
 
     // Handle empty results
-    if (empty($orders)) {
-        echo json_encode(["success" => true, "data" => [], "message" => "No orders found."]);
+    if (empty($deletedOrders)) {
+        echo json_encode(["success" => true, "data" => [], "message" => "No deleted orders found."]);
         exit();
     }
 
-    echo json_encode(["success" => true, "data" => $orders]);
+    echo json_encode(["success" => true, "data" => $deletedOrders]);
 } catch (Exception $e) {
     echo json_encode(["success" => false, "message" => $e->getMessage()]);
 }

@@ -32,24 +32,54 @@ try {
 
     $orderId = $data->orderId;
 
-    // First, delete associated order items to maintain referential integrity
+    // Begin transaction
+    $db->beginTransaction();
+
+    // Insert the deleted order into the `deleted_orders` table
+    $insertDeletedOrderQuery = "INSERT INTO deleted_orders (OrderID, TotalAmount, OrderType, PaymentMethod, PaidAmount, ChangeAmount, OrderDate)
+        SELECT OrderID, TotalAmount, OrderType, PaymentMethod, PaidAmount, ChangeAmount, OrderDate FROM orders WHERE OrderID = :orderId";
+    $stmtInsertOrder = $db->prepare($insertDeletedOrderQuery);
+    $stmtInsertOrder->bindParam(':orderId', $orderId);
+    $stmtInsertOrder->execute();
+
+    // Get the ID of the inserted deleted order
+    $deletedOrderId = $db->lastInsertId();
+if (!$deletedOrderId) {
+    throw new Exception("Failed to retrieve DeletedOrderID after inserting into deleted_orders.");
+}
+
+
+    // Insert associated order items into the `deleted_order_items` table
+    $insertDeletedItemsQuery = "INSERT INTO deleted_order_items (DeletedOrderID, ProductID, ProductName, Price, Quantity)
+        SELECT :deletedOrderId, ProductID, ProductName, Price, Quantity FROM order_items WHERE OrderID = :orderId";
+    $stmtInsertItems = $db->prepare($insertDeletedItemsQuery);
+    $stmtInsertItems->bindParam(':deletedOrderId', $deletedOrderId);
+    $stmtInsertItems->bindParam(':orderId', $orderId);
+    $stmtInsertItems->execute();
+
+    // Delete associated order items from the `order_items` table
     $deleteItemsQuery = "DELETE FROM order_items WHERE OrderID = :orderId";
     $stmtItems = $db->prepare($deleteItemsQuery);
     $stmtItems->bindParam(':orderId', $orderId);
     $stmtItems->execute();
 
-    // Then, delete the main order record
+    // Delete the main order record from the `orders` table
     $deleteOrderQuery = "DELETE FROM orders WHERE OrderID = :orderId";
     $stmtOrder = $db->prepare($deleteOrderQuery);
     $stmtOrder->bindParam(':orderId', $orderId);
     $stmtOrder->execute();
 
-    // Check if any rows were affected
+    // Commit the transaction
+    $db->commit();
+
+    // Check if the order was successfully deleted
     if ($stmtOrder->rowCount() > 0) {
-        echo json_encode(["success" => true, "message" => "Order deleted successfully."]);
+        echo json_encode(["success" => true, "message" => "Order moved to bin successfully."]);
     } else {
         echo json_encode(["success" => false, "message" => "Order not found or already deleted."]);
     }
 } catch (Exception $e) {
+    // Rollback the transaction on error
+    $db->rollBack();
     echo json_encode(["success" => false, "message" => $e->getMessage()]);
 }
