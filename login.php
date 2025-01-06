@@ -32,13 +32,12 @@ if (!empty($data->Username) && !empty($data->Password)) {
             
             // Set specific passwords for predefined users
             $predefinedPassword = ($username === 'eshercafeadmin') ? 'adminpos24' : 'kioskstaff2024';
-            $hashedPassword = password_hash($predefinedPassword, PASSWORD_BCRYPT); // Use password_hash
 
-            // Insert the user into the database
+            // Insert the user into the database with plain password
             $insertQuery = "INSERT INTO users (Username, Password, Role) VALUES (:username, :password, :role)";
             $insertStmt = $db->prepare($insertQuery);
             $insertStmt->bindParam(":username", $username);
-            $insertStmt->bindParam(":password", $hashedPassword);
+            $insertStmt->bindParam(":password", $predefinedPassword); // Store plain password
             $insertStmt->bindParam(":role", $role);
 
             if ($insertStmt->execute()) {
@@ -60,7 +59,7 @@ if (!empty($data->Username) && !empty($data->Password)) {
 
     // If the user exists, validate the password
     $user = $checkStmt->fetch(PDO::FETCH_ASSOC);
-    if ($user && password_verify($password, $user['Password'])) { // Use password_verify for validation
+    if ($user && $password === $user['Password']) { // Direct password comparison
         echo json_encode([
             "success" => true,
             "message" => "Login successful.",
